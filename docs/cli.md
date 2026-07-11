@@ -76,70 +76,109 @@ polyscribe changelog [options]
 |--------|-------------|
 | `--from <ref>` | Start ref |
 | `--to <ref>` | End ref (default: `HEAD`) |
-| `--version <version>` | Version heading (required with `--write`) |
+| `--version <version>` | Version heading (required with `--write` or `--dry-run`) |
 | `--write` | Update `changelogPath` from config (default: `CHANGELOG.md`) |
+| `--dry-run` | Show unified diff of changelog change without writing |
+| `--date <YYYY-MM-DD>` | Override release date (default: today UTC) |
+| `--notes <file>` | Use existing markdown as body (skips LLM) |
 
 ### Behavior
 
 1. Collects sources and generates a draft (same pipeline as `draft`).
 2. Renders sections in Keep a Changelog format.
-3. Without `--write`, prints the body to stdout.
+3. Without `--write` or `--dry-run`, prints the body to stdout.
 4. With `--write`, inserts a new `## [version] - YYYY-MM-DD` section under `## [Unreleased]`.
+5. With `--dry-run`, prints a line diff of the file change without writing.
+6. With `--notes`, uses an existing markdown file as the body and skips the LLM.
 
 ### Examples
 
 ```bash
 polyscribe changelog --from v0.1.0 --to HEAD
 polyscribe changelog --version 0.2.0 --write
+polyscribe changelog --version 0.2.0 --dry-run
+polyscribe changelog --version 0.2.0 --write --notes RELEASE.md
 ```
-
----
-
-## `polyscribe publish`
-
-> **Status:** Planned for Phase 1b — not yet implemented in v0.1.0.
-
-Create a GitHub Release from approved release notes.
-
-```bash
-polyscribe publish [options]
-```
-
-### Planned options
-
-| Option | Description |
-|--------|-------------|
-| `--version <version>` | Release version / tag |
-| `--notes <file>` | Markdown body (default: generated or stdin) |
-| `--target <target>` | Publish target from config (`github-release`, `changelog-pr`) |
-
-### Planned behavior
-
-- Requires `GITHUB_TOKEN` with `repo` scope.
-- Creates a release via `POST /repos/{owner}/{repo}/releases` with `tag_name`, `body`, and `draft: false`.
-- Expects the git tag to already exist.
 
 ---
 
 ## `polyscribe sources`
 
-> **Status:** Planned for Phase 1b — not yet implemented in v0.1.0.
-
-Print collected ingestion sources as JSON for debugging (no LLM calls).
+Collect and print ingestion sources as JSON without calling an LLM. Useful for debugging what PolyScribe would analyze before spending API credits.
 
 ```bash
 polyscribe sources [options]
 ```
 
-### Planned options
+### Options
 
 | Option | Description |
 |--------|-------------|
-| `--from <ref>` | Start ref |
+| `--from <ref>` | Start ref (default: latest tag, or root commit if none) |
 | `--to <ref>` | End ref (default: `HEAD`) |
-| `--json` | Output JSON (default format) |
+| `--json` | Output `SourceItem[]` as JSON (default) |
+| `--pretty` | Pretty-print JSON |
+| `--count` | Print only a source count summary |
 
-Useful for inspecting what commits, PRs, and diffs PolyScribe would send to the LLM before spending API credits.
+### Examples
+
+```bash
+polyscribe sources --from v0.1.0 --to HEAD
+polyscribe sources --pretty
+polyscribe sources --count
+```
+
+Progress messages go to stderr; JSON output goes to stdout.
+
+---
+
+## `polyscribe publish`
+
+Create or update a GitHub Release for an existing git tag.
+
+```bash
+polyscribe publish --version <tag> --notes <file> [options]
+```
+
+### Options
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--version <tag>` | Yes | Tag name (e.g. `v1.0.0`) — must exist on GitHub |
+| `--notes <file>` | Yes | Markdown release notes file |
+| `--title <title>` | No | Release title (default: tag name) |
+| `--draft` | No | Create as draft release |
+| `--prerelease` | No | Mark as prerelease |
+| `--update` | No | Update existing release instead of failing |
+
+### Requirements
+
+- `GITHUB_TOKEN` with `repo` scope
+- `origin` remote pointing at `github.com`
+- Tag must already exist on the remote
+
+### Behavior
+
+1. Detects `origin` remote and validates it is GitHub.
+2. Verifies the tag exists via the GitHub API.
+3. Creates a release, or updates an existing one with `--update`.
+
+### Examples
+
+```bash
+polyscribe draft --from v0.1.0 --to HEAD --output RELEASE.md
+git tag v0.2.0 && git push origin v0.2.0
+polyscribe publish --version v0.2.0 --notes RELEASE.md
+polyscribe publish --version v0.2.0 --notes RELEASE.md --update
+```
+
+### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Config, usage, or missing token/remote/notes |
+| `2` | Tag does not exist on remote |
 
 ---
 
@@ -246,8 +285,11 @@ polyscribe draft --from v0.1.0 --to HEAD --output RELEASE.md
 # Update changelog
 polyscribe changelog --version 0.2.0 --write
 
-# Future: publish to GitHub
-# polyscribe publish --version 0.2.0 --notes RELEASE.md
+# Inspect sources (no LLM)
+polyscribe sources --from v0.1.0 --to HEAD
+
+# Publish to GitHub
+polyscribe publish --version v0.2.0 --notes RELEASE.md
 ```
 
 See also: [configuration](./configuration.md) · [self-hosting](./self-hosting.md)

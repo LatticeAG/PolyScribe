@@ -306,8 +306,8 @@ sources → redactSecrets → buildDraftPrompts → LLM structured JSON → vali
 | `polyscribe config --init` | **Implemented** | Write example `.polyscribe.yml` |
 | `polyscribe validate-config` | **Implemented** | Validate config file |
 | `polyscribe doctor` | **Implemented** | Preflight checks |
-| `polyscribe publish` | **Phase 1b** | Create GitHub Release via API |
-| `polyscribe sources` | **Phase 1b** | Print collected sources as JSON (debug) |
+| `polyscribe publish` | **Implemented** | Create GitHub Release via API |
+| `polyscribe sources` | **Implemented** | Print collected sources as JSON (debug) |
 
 #### `polyscribe draft` (spec)
 
@@ -439,17 +439,17 @@ sections:
 | `redact/secrets` | ✅ Done | |
 | `draft/` pipeline | ✅ Done | OpenAI + Anthropic |
 | CLI draft/changelog/config/doctor | ✅ Done | |
-| Unit tests (32) | ✅ Done | |
+| Unit tests (52+) | ✅ Done | core + cli |
 | GitHub Actions CI | ✅ Done | `.github/workflows/ci.yml` |
 | `docs/cli.md` | ✅ Done | full CLI reference |
 | `docs/configuration.md` | ✅ Done | `.polyscribe.yml` reference |
 | `docs/self-hosting.md` | ✅ Done | OSS CLI note; server later |
 | Root `CHANGELOG.md` + `.polyscribe.yml` | ✅ Done | Keep a Changelog + example config |
 | npm publish prep (`@polyscribe/*` v0.1.0) | ✅ Done | metadata, `prepublishOnly`, public access |
-| `polyscribe publish` | ⬜ Phase 1b | GitHub Releases API |
-| `polyscribe sources` | ⬜ Phase 1b | debug JSON export |
-| Git integration tests | ⬜ Phase 1b | fixture repo |
-| Citation unit tests | ⬜ Phase 1b | |
+| `polyscribe publish` | ✅ Done | GitHub Releases API |
+| `polyscribe sources` | ✅ Done | debug JSON export |
+| Git integration tests | ✅ Done | fixture repo |
+| Citation unit tests | ✅ Done | |
 | Dogfood on LatticeAG repo | ⬜ Phase 1b | |
 | npm publish `@polyscribe/*` to registry | ⬜ Phase 1c | `pnpm publish` after tag |
 
@@ -462,7 +462,7 @@ sections:
 | **O3** Draft | `generateDraft` + CLI `draft` | ✅ |
 | **O4** Changelog | `insertVersion` + CLI `changelog --write` | ✅ |
 | **O5** Tests | ≥30 unit tests, no live LLM | ✅ |
-| **O6** Publish | `polyscribe publish` creates GitHub Release | ⬜ |
+| **O6** Publish | `polyscribe publish` creates GitHub Release | ✅ |
 | **O7** Docs + npm | README quickstart + npm publish prep | 🟡 Docs/CI done; registry publish Phase 1c |
 | **O8** Dogfood | PolyScribe release notes via PolyScribe | ⬜ |
 
@@ -1405,7 +1405,7 @@ Dogfood rule: **PolyScribe releases are written with PolyScribe** once M3 exists
 | O3 | Draft generation + CLI `draft` | ✅ |
 | O4 | Changelog merge + CLI `changelog` | ✅ |
 | O5 | Unit tests (32+) | ✅ |
-| O6 | `polyscribe publish` | ⬜ Phase 1b |
+| O6 | `polyscribe publish` | ✅ Done |
 | O7 | npm publish + docs | ⬜ Phase 1c |
 | O8 | Dogfood release | ⬜ Phase 1c |
 

@@ -50,18 +50,23 @@ polyscribe draft --tone technical --json --output draft.json
 ```bash
 polyscribe changelog --from v0.1.0 --to HEAD
 polyscribe changelog --version 0.2.0 --write
+polyscribe changelog --version 0.2.0 --dry-run
+polyscribe changelog --version 0.2.0 --write --notes RELEASE.md
 ```
 
-### Debug sources (coming in Phase 1b)
+### Debug sources
 
 ```bash
-# polyscribe sources --from v0.1.0 --to HEAD --json
+polyscribe sources --from v0.1.0 --to HEAD
+polyscribe sources --from v0.1.0 --to HEAD --pretty
+polyscribe sources --count
 ```
 
-### Publish to GitHub (coming in Phase 1b)
+### Publish to GitHub
 
 ```bash
-# polyscribe publish --version 0.2.0 --notes RELEASE.md
+polyscribe publish --version v0.2.0 --notes RELEASE.md
+polyscribe publish --version v0.2.0 --notes RELEASE.md --update
 ```
 
 ### Development (this repo)
@@ -78,7 +83,7 @@ node packages/cli/dist/index.js config --init
 | `OPENAI_API_KEY` | One of the LLM keys | OpenAI draft generation |
 | `ANTHROPIC_API_KEY` | One of the LLM keys | Anthropic draft generation |
 | `POLYSCRIBE_LLM_PROVIDER` | No | Force `openai` or `anthropic` |
-| `GITHUB_TOKEN` | No | Enrich ingestion with PR metadata from GitHub |
+| `GITHUB_TOKEN` | No (required for `publish`) | Enrich ingestion with PR metadata; create GitHub Releases |
 
 ## Packages
 
