@@ -81,6 +81,7 @@ polyscribe changelog [options]
 | `--dry-run` | Show unified diff of changelog change without writing |
 | `--date <YYYY-MM-DD>` | Override release date (default: today UTC) |
 | `--notes <file>` | Use existing markdown as body (skips LLM) |
+| `--unreleased` | Update only `## [Unreleased]` (no `--version` required) |
 
 ### Behavior
 
@@ -90,6 +91,7 @@ polyscribe changelog [options]
 4. With `--write`, inserts a new `## [version] - YYYY-MM-DD` section under `## [Unreleased]`.
 5. With `--dry-run`, prints a line diff of the file change without writing.
 6. With `--notes`, uses an existing markdown file as the body and skips the LLM.
+7. With `--unreleased`, replaces the `[Unreleased]` section body only.
 
 ### Examples
 
@@ -98,6 +100,7 @@ polyscribe changelog --from v0.1.0 --to HEAD
 polyscribe changelog --version 0.2.0 --write
 polyscribe changelog --version 0.2.0 --dry-run
 polyscribe changelog --version 0.2.0 --write --notes RELEASE.md
+polyscribe changelog --unreleased --write
 ```
 
 ---
@@ -137,7 +140,7 @@ Progress messages go to stderr; JSON output goes to stdout.
 Create or update a GitHub Release for an existing git tag.
 
 ```bash
-polyscribe publish --version <tag> --notes <file> [options]
+polyscribe publish --version <tag> [--notes <file>] [options]
 ```
 
 ### Options
@@ -145,7 +148,7 @@ polyscribe publish --version <tag> --notes <file> [options]
 | Option | Required | Description |
 |--------|----------|-------------|
 | `--version <tag>` | Yes | Tag name (e.g. `v1.0.0`) — must exist on GitHub |
-| `--notes <file>` | Yes | Markdown release notes file |
+| `--notes <file>` | No | Markdown release notes file (default: `RELEASE.md`) |
 | `--title <title>` | No | Release title (default: tag name) |
 | `--draft` | No | Create as draft release |
 | `--prerelease` | No | Mark as prerelease |

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `polyscribe changelog --unreleased` to update only the `[Unreleased]` section
+- Citation validation retry: one automatic LLM repair pass before failing
+- `polyscribe publish` defaults `--notes` to `RELEASE.md`
+- `polyscribe sources` command with `--json`, `--pretty`, and `--count`
+- `polyscribe changelog --dry-run`, `--date`, and `--notes` (skip LLM)
+- `polyscribe draft --sources-only` / `--no-llm` for ingestion-only output
+- GitHub Releases API via `polyscribe publish` (`--update`, `--draft`, `--prerelease`)
+- Semver heuristics with `{ level, reasons }` and conventional commit detection
+- Linked issue parsing from PR bodies (`Fixes #123`, etc.)
+- Octokit retry/throttling for GitHub API rate limits
+- Git integration tests, citation tests, and release API tests (65 total)
+- CI workflow, docs (`docs/cli.md`, `docs/configuration.md`), and npm publish metadata
+
 ## [0.1.0] - 2026-07-11
 
 ### Added

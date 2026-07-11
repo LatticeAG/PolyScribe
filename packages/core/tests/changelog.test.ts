@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { insertVersion, parseChangelog } from "../src/changelog/index.js";
+import { insertVersion, parseChangelog, updateUnreleased } from "../src/changelog/index.js";
 
 const KEEP_A_CHANGELOG = `# Changelog
 
@@ -54,5 +54,20 @@ describe("insertVersion", () => {
     expect(updated.indexOf("## [1.1.0]")).toBeLessThan(
       updated.indexOf("## [1.0.0]"),
     );
+  });
+});
+
+describe("updateUnreleased", () => {
+  it("replaces Unreleased body while keeping version history", () => {
+    const updated = updateUnreleased(
+      KEEP_A_CHANGELOG,
+      `### Added
+- New unreleased feature`,
+    );
+
+    expect(updated).toContain("## [Unreleased]");
+    expect(updated).toContain("New unreleased feature");
+    expect(updated).not.toContain("Draft changelog generation");
+    expect(updated).toContain("## [1.0.0] - 2024-01-15");
   });
 });

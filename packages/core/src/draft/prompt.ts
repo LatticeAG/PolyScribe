@@ -104,3 +104,19 @@ export function buildDraftPrompts(
     user: buildDraftUserPrompt(sources, tone, heuristicSemver),
   };
 }
+
+export function buildCitationRepairPrompt(
+  invalid: Array<{ type: string; reason: string }>,
+): string {
+  const issues = invalid
+    .map((item) => `- ${item.type}: ${item.reason}`)
+    .join("\n");
+
+  return `Your previous draft failed citation validation. Fix every issue below.
+Each non-empty section bullet must include a valid sourceId from the original source list.
+
+Validation issues:
+${issues}
+
+Return corrected JSON with valid sourceIds on every section.`;
+}

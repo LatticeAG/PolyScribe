@@ -7,7 +7,7 @@ import type {
   SourceItem,
 } from "../types.js";
 import { suggestSemverFromSources } from "../semver/heuristics.js";
-import { buildDraftPrompts } from "./prompt.js";
+import { buildDraftPrompts, buildCitationRepairPrompt } from "./prompt.js";
 import { llmDraftOutputSchema } from "./schema.js";
 import { renderDraftMarkdown } from "./render.js";
 import type { LLMClient } from "./llm/client.js";
@@ -114,19 +114,38 @@ export async function generateDraft(
     maxTokens: 4096,
   });
 
-  const sections: DraftSection[] = output.sections.map((section) => ({
+  let sections: DraftSection[] = output.sections.map((section) => ({
     type: section.type,
     title: section.title,
     content: section.content,
     sourceIds: section.sourceIds ?? [],
   }));
 
-  const invalid = validateSectionCitations(sections, sourceIdSet);
+  let invalid = validateSectionCitations(sections, sourceIdSet);
+
   if (invalid.length > 0) {
-    throw new CitationValidationError(
-      `Draft failed citation validation (${invalid.length} issue(s))`,
-      invalid,
-    );
+    const repairUser = `${prompts.user}\n\n${buildCitationRepairPrompt(invalid)}`;
+    const repaired = await llmClient.completeStructured({
+      system: prompts.system,
+      user: repairUser,
+      schema: llmDraftOutputSchema,
+      maxTokens: 4096,
+    });
+
+    sections = repaired.sections.map((section) => ({
+      type: section.type,
+      title: section.title,
+      content: section.content,
+      sourceIds: section.sourceIds ?? [],
+    }));
+
+    invalid = validateSectionCitations(sections, sourceIdSet);
+    if (invalid.length > 0) {
+      throw new CitationValidationError(
+        `Draft failed citation validation after repair (${invalid.length} issue(s))`,
+        invalid,
+      );
+    }
   }
 
   const now = new Date().toISOString();

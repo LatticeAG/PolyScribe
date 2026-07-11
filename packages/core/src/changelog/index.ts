@@ -4,7 +4,7 @@ export {
   type ParsedChangelog,
 } from "./parse.js";
 
-export { insertVersion } from "./merge.js";
+export { insertVersion, updateUnreleased } from "./merge.js";
 
 export function createEmptyChangelog(): string {
   return `# Changelog

@@ -36,3 +36,23 @@ export function insertVersion(
 
   return `${blocks.join("\n\n").replace(/\n{3,}/g, "\n\n")}\n`;
 }
+
+/** Replace or insert the ## [Unreleased] section body without adding a version. */
+export function updateUnreleased(changelog: string, content: string): string {
+  const parsed = parseChangelog(changelog);
+  const blocks: string[] = [];
+
+  if (parsed.preamble.length > 0) {
+    blocks.push(parsed.preamble);
+  }
+
+  blocks.push(`## [Unreleased]${normalizeContent(content)}`);
+
+  for (const existing of parsed.versions) {
+    blocks.push(
+      `${formatVersionHeading(existing.version, existing.date)}${normalizeContent(existing.content)}`,
+    );
+  }
+
+  return `${blocks.join("\n\n").replace(/\n{3,}/g, "\n\n")}\n`;
+}

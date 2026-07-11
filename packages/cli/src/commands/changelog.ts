@@ -10,6 +10,7 @@ import {
   loadConfig,
   renderKeepAChangelogBody,
   resolveRange,
+  updateUnreleased,
   type ResolvedRange,
 } from "@polyscribe/core";
 import { gatherSources } from "../lib/gather-sources.js";
@@ -26,6 +27,7 @@ export interface ChangelogCommandOptions {
   dryRun?: boolean;
   date?: string;
   notes?: string;
+  unreleased?: boolean;
 }
 
 export function registerChangelogCommand(program: Command): void {
@@ -41,6 +43,10 @@ export function registerChangelogCommand(program: Command): void {
     .option(
       "--notes <file>",
       "use existing markdown file as changelog body (skips LLM)",
+    )
+    .option(
+      "--unreleased",
+      "update only the [Unreleased] section (no --version required)",
     )
     .action(async (options: ChangelogCommandOptions) => {
       const cwd = process.cwd();
@@ -109,6 +115,35 @@ export function registerChangelogCommand(program: Command): void {
 
         const changelogPath = resolve(cwd, config.changelogPath);
         const needsFileUpdate = options.write || options.dryRun;
+
+        if (options.unreleased) {
+          const existing = existsSync(changelogPath)
+            ? readFileSync(changelogPath, "utf8")
+            : createEmptyChangelog();
+          const updated = updateUnreleased(existing, body);
+
+          if (options.dryRun) {
+            console.log(renderLineDiff(existing, updated));
+            return;
+          }
+
+          if (options.write) {
+            writeFileSync(changelogPath, updated, "utf8");
+            console.log(
+              pc.green(`Updated [Unreleased] in ${config.changelogPath}`),
+            );
+            return;
+          }
+
+          console.log("");
+          console.log(body);
+          console.log("");
+          console.log(pc.dim(`Range: ${range.fromRef}..${range.toRef}`));
+          console.log(
+            pc.dim("Tip: use --write --unreleased to update CHANGELOG.md"),
+          );
+          return;
+        }
 
         if (!needsFileUpdate) {
           console.log("");

@@ -25,7 +25,10 @@ export function registerPublishCommand(program: Command): void {
     .command("publish")
     .description("Create or update a GitHub Release for an existing tag")
     .requiredOption("--version <tag>", "tag name, e.g. v1.0.0")
-    .requiredOption("--notes <file>", "release notes markdown file")
+    .option(
+      "--notes <file>",
+      "release notes markdown file (default: RELEASE.md)",
+    )
     .option("--title <title>", "release title (default: version)")
     .option("--draft", "create as draft release")
     .option("--prerelease", "mark as prerelease")
@@ -52,9 +55,14 @@ export function registerPublishCommand(program: Command): void {
         process.exit(EXIT_CONFIG);
       }
 
-      const notesPath = resolve(cwd, options.notes!);
+      const notesFile = options.notes ?? "RELEASE.md";
+      const notesPath = resolve(cwd, notesFile);
       if (!existsSync(notesPath)) {
-        console.error(pc.red(`Release notes file not found: ${options.notes}`));
+        console.error(
+          pc.red(
+            `Release notes file not found: ${notesFile}. Run: polyscribe draft --output RELEASE.md`,
+          ),
+        );
         process.exit(EXIT_CONFIG);
       }
 

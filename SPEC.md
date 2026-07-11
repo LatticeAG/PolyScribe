@@ -439,7 +439,7 @@ sections:
 | `redact/secrets` | ✅ Done | |
 | `draft/` pipeline | ✅ Done | OpenAI + Anthropic |
 | CLI draft/changelog/config/doctor | ✅ Done | |
-| Unit tests (52+) | ✅ Done | core + cli |
+| Unit tests (65) | ✅ Done | core + cli |
 | GitHub Actions CI | ✅ Done | `.github/workflows/ci.yml` |
 | `docs/cli.md` | ✅ Done | full CLI reference |
 | `docs/configuration.md` | ✅ Done | `.polyscribe.yml` reference |
@@ -449,8 +449,9 @@ sections:
 | `polyscribe publish` | ✅ Done | GitHub Releases API |
 | `polyscribe sources` | ✅ Done | debug JSON export |
 | Git integration tests | ✅ Done | fixture repo |
-| Citation unit tests | ✅ Done | |
-| Dogfood on LatticeAG repo | ⬜ Phase 1b | |
+| Citation retry on validation fail | ✅ Done | one repair pass |
+| `changelog --unreleased` | ✅ Done | update Unreleased section |
+| Dogfood on LatticeAG repo | ⬜ Phase 1c | |
 | npm publish `@polyscribe/*` to registry | ⬜ Phase 1c | `pnpm publish` after tag |
 
 ### 0.1.9 OSS milestones (active)
