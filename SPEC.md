@@ -1,9 +1,10 @@
 # PolyScribe — Product Specification
 
-> **Status:** Planning / pre-implementation  
+> **Status:** OSS Phase 1 — active implementation  
 > **Owner:** LatticeAG  
 > **Repo:** `LatticeAG/PolyScribe`  
 > **Audience:** founders, eng, design, GTM  
+> **Active scope:** `@polyscribe/core` + `@polyscribe/cli` only. SaaS deferred.  
 > **Rule for this doc:** Prefer a concrete recommendation over an open debate. Open questions are listed only where a human product call is genuinely needed.
 
 ---
@@ -12,21 +13,476 @@
 
 ### Crucial decision: OSS, SaaS, or Hybrid?
 
-**Recommendation: Hybrid — open-core CLI/SDK + invite-only hosted SaaS GitHub App.**
+**Long-term: Hybrid.** **Right now: OSS only.**
 
-| Option | Verdict | Why |
-|--------|---------|-----|
-| **Pure OSS** | Reject | Great for trust and adoption, weak for recurring revenue, onboarding, and managed GitHub App ops. |
-| **Pure SaaS** | Reject | Release tooling buyers distrust black-box access to diffs/PRs; distribution is harder without an installable CLI; enterprises will demand self-host or auditability. |
-| **Hybrid (chosen)** | **Ship this** | Match the category’s buying motion: free local draft for individuals, zero-config GitHub App for teams, self-host path for regulated orgs. |
+| Option | Long-term | Phase 1 (now) |
+|--------|-----------|---------------|
+| **Pure OSS** | Part of hybrid | **Ship this first** |
+| **Pure SaaS** | Reject alone | Deferred |
+| **Hybrid** | **Target end state** | OSS now → SaaS after OSS v0.1 |
 
-**Hybrid shape (locked):**
+**Why OSS first (locked):**
 
-1. **MIT OSS** — `@polyscribe/core`, `@polyscribe/cli`, templates, prompt schemas, changelog parser. Fully usable offline with a bring-your-own LLM key (or local model).
-2. **Hosted SaaS** — LatticeAG-operated GitHub App, dashboard, queue, billing, audit log, shared LLM routing. Invite-only at launch.
-3. **Self-host server** — same app surface as SaaS (`@polyscribe/server` + Docker/Helm), no LatticeAG billing dependency. OSS for community; paid support/Enterprise features later if needed.
+1. Validates the core value (ingestion → draft → changelog) without App/billing/queue complexity.
+2. Builds trust and community before asking for GitHub App install permissions.
+3. CLI is the viral wedge (`npx @polyscribe/cli draft`).
+4. SaaS later reuses `@polyscribe/core` unchanged — no throwaway work.
 
-This is the LatticeAG product pattern and the correct fit for PolyScribe: **trust via OSS, convenience and revenue via SaaS, control via self-host.**
+**Hybrid end state (deferred, not in active scope):**
+
+1. **MIT OSS** — `@polyscribe/core`, `@polyscribe/cli`, templates, prompt schemas, changelog parser.
+2. **Hosted SaaS** — GitHub App, dashboard, queue, billing (Phase 2+).
+3. **Self-host server** — `@polyscribe/server` + Docker (Phase 2+).
+
+---
+
+## 0.1 OSS Phase 1 — Implementation Specification
+
+> This section is the **active build contract**. Everything here should be implementable without SaaS infrastructure.
+
+### 0.1.1 Phase 1 goal
+
+Ship a production-quality **local CLI** that:
+
+1. Reads git history (+ optional GitHub PRs via `GITHUB_TOKEN`) for a ref range.
+2. Generates an evidence-linked AI release draft (BYO LLM key).
+3. Merges output into `CHANGELOG.md` (Keep a Changelog).
+4. Passes CI: build, typecheck, 30+ unit tests, no live LLM in tests.
+
+**Phase 1 exit criteria:**
+
+```bash
+pnpm install && pnpm build && pnpm test && pnpm typecheck  # all green
+polyscribe doctor                                           # passes in a git repo + API key
+polyscribe draft --from v0.1.0 --to HEAD --output NOTES.md  # produces cited draft
+polyscribe changelog --version 0.2.0 --write                # updates CHANGELOG.md
+```
+
+### 0.1.2 Monorepo layout (locked)
+
+```
+PolyScribe/
+├── package.json                 # pnpm workspaces root, turbo scripts
+├── pnpm-workspace.yaml
+├── turbo.json
+├── LICENSE                      # MIT
+├── README.md
+├── SPEC.md
+├── packages/
+│   ├── tsconfig/
+│   │   ├── base.json
+│   │   └── node.json
+│   ├── core/                    # @polyscribe/core
+│   │   ├── package.json
+│   │   ├── tsup.config.ts
+│   │   ├── vitest.config.ts
+│   │   ├── src/
+│   │   │   ├── index.ts         # public barrel
+│   │   │   ├── types.ts
+│   │   │   ├── config/
+│   │   │   ├── git/
+│   │   │   ├── github/
+│   │   │   ├── ingest/
+│   │   │   ├── semver/
+│   │   │   ├── changelog/
+│   │   │   ├── redact/
+│   │   │   ├── draft/
+│   │   │   └── sources/         # re-export ingest + git + github
+│   │   └── tests/
+│   └── cli/                     # @polyscribe/cli
+│       ├── package.json         # bin: polyscribe
+│       └── src/
+│           ├── index.ts
+│           └── commands/
+```
+
+**Tooling (locked):**
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Node.js | ≥ 22 | Runtime |
+| pnpm | 10.x | Workspaces |
+| Turborepo | 2.x | Task orchestration |
+| TypeScript | 5.x | Language |
+| tsup | 8.x | ESM + DTS builds |
+| Vitest | 3.x | Unit tests |
+| Zod | 3.x | Config + LLM JSON schema |
+| Commander | 12.x | CLI parsing |
+| picocolors | 1.x | Terminal colors |
+
+### 0.1.3 Package: `@polyscribe/core`
+
+**Purpose:** Pure library — no CLI, no env reads except where explicitly passed in options. All I/O via injected paths/tokens.
+
+#### Public exports (`src/index.ts`)
+
+```ts
+// types
+export type { SourceItem, Draft, DraftSection, ReleaseRange, PolyScribeConfig, ... }
+
+// config
+export { loadConfig, parseConfig, polyScribeConfigSchema, DEFAULT_IGNORE_GLOBS, EXAMPLE_CONFIG_YAML }
+
+// sources / ingestion
+export { collectSources, resolveRange, getLatestTag, resolveRef, applyIgnoreGlobs, ... }
+
+// semver
+export { suggestSemverFromSources }
+
+// changelog
+export { parseChangelog, insertVersion, renderKeepAChangelogBody }
+
+// draft
+export { generateDraft, buildDraftPrompts, renderDraftMarkdown, createLLMClient, CitationValidationError }
+
+// redact
+export { redactSecrets }
+```
+
+#### Module: `config/`
+
+| File | API | Behavior |
+|------|-----|----------|
+| `schema.ts` | `polyScribeConfigSchema` (Zod) | Defaults per §0.1.6 |
+| `load.ts` | `loadConfig(cwd)` | Merge `.github/polyscribe.yml` then `.polyscribe.yml`; later file wins on keys |
+| `load.ts` | `validateConfigFile(path)` | Parse + validate; throw `ConfigError` with path |
+
+**Config precedence (locked):** `defaults < .github/polyscribe.yml < .polyscribe.yml < CLI flags`
+
+#### Module: `git/`
+
+| File | API | Behavior |
+|------|-----|----------|
+| `exec.ts` | `git(cwd, args[])` | Wrapper around `execa('git', ...)` with cwd |
+| `refs.ts` | `resolveRef(cwd, ref)` | `git rev-parse` → full SHA |
+| `refs.ts` | `getLatestTag(cwd)` | `git describe --tags --abbrev=0` or null |
+| `refs.ts` | `resolveRange(cwd, from?, to?)` | Default: `latestTag..HEAD`; if no tags, `root..HEAD` |
+| `log.ts` | `getCommitsInRange(cwd, fromSha, toSha)` | Delimited `git log`; returns `CommitInfo[]` |
+| `diff.ts` | `getFileChanges(cwd, fromSha, toSha, opts)` | `git diff --name-status` + `--numstat` + per-file patch; apply caps |
+
+**Git log format (locked):** Use a unique record delimiter (`\x1e`) between commits and `\x1f` between fields to avoid parsing fragility:
+
+```
+sha\x1fauthorName\x1fauthorEmail\x1fdate\x1ftitle\x1fbody
+```
+
+#### Module: `github/`
+
+| File | API | Behavior |
+|------|-----|----------|
+| `client.ts` | `detectRemoteRepo(cwd)` | Parse `origin` URL → `{ owner, repo, host }` |
+| `client.ts` | `createOctokit(token?)` | `@octokit/rest` instance |
+| `client.ts` | `getCommitDate(cwd, sha)` | For PR date window |
+| `prs.ts` | `fetchMergedPrsInRange(remote, token?, since, until)` | Paginate `pulls.list` state=closed; filter `merged_at` in range |
+
+**PR mapping → `SourceItem` (locked):**
+
+```ts
+{
+  id: `pr:${number}`,
+  type: "pr",
+  prNumber: number,
+  sha: merge_commit_sha,
+  title, body, author, labels, linkedIssues, url,
+  mergedAt: merged_at,
+}
+```
+
+**Without `GITHUB_TOKEN`:** ingestion still works from git commits + diffs; PR bodies/labels unavailable.
+
+#### Module: `ingest/`
+
+| File | API | Behavior |
+|------|-----|----------|
+| `filter.ts` | `applyIgnoreGlobs(paths, globs)` | `minimatch` with `dot: true` |
+| `collect.ts` | `collectSources(cwd, range, config)` | Orchestrate; **PR-first dedupe** |
+
+**`collectSources` algorithm (locked):**
+
+1. Resolve range → `fromSha`, `toSha`
+2. Parallel fetch: commits, file changes, remote metadata
+3. If remote + token: fetch merged PRs in commit-date window
+4. Build `prCommitShas` from PR merge SHAs
+5. Orphan commits = commits not in `prCommitShas`
+6. Diff items: top 20 file changes as `type: "diff"` evidence (path + truncated patch)
+7. Return `[...prItems, ...orphanCommitItems, ...diffItems]`
+
+#### Module: `semver/heuristics.ts`
+
+**`suggestSemverFromSources(sources)` (locked rules):**
+
+1. `major` if any source has label `breaking` OR title/body matches `/BREAKING CHANGE/i`
+2. else `minor` if any label `feat` OR conventional `feat:` in commit title
+3. else `patch`
+
+Returns `{ heuristic: SemverLevel, reasons: string[] }` for UI/debug.
+
+#### Module: `changelog/`
+
+| File | API | Behavior |
+|------|-----|----------|
+| `parse.ts` | `parseChangelog(markdown)` | Extract `preamble`, `unreleased`, `versions[]` |
+| `merge.ts` | `insertVersion(doc, version, date, body)` | Insert after Unreleased or after preamble |
+| `render.ts` | `renderKeepAChangelogBody(sections)` | `### Added/Changed/Fixed/...` from draft sections |
+
+**Supported changelog headers (locked):**
+
+```markdown
+## [Unreleased]
+## [1.2.3] - 2026-07-11
+## 1.2.3 (2026-07-11)   # also parse, normalize on write
+```
+
+#### Module: `redact/secrets.ts`
+
+**Patterns to redact before LLM (locked):**
+
+| Pattern | Replacement |
+|---------|-------------|
+| AWS access key `AKIA...` | `[REDACTED_AWS_KEY]` |
+| GitHub `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_` | `[REDACTED_GITHUB_TOKEN]` |
+| OpenAI `sk-...` | `[REDACTED_OPENAI_KEY]` |
+| PEM `-----BEGIN ... PRIVATE KEY-----` blocks | `[REDACTED_PRIVATE_KEY]` |
+| `Bearer eyJ...` JWTs | `[REDACTED_BEARER_TOKEN]` |
+
+Apply to: commit messages, PR bodies, diff patches.
+
+#### Module: `draft/`
+
+**Pipeline (locked order):**
+
+```
+sources → redactSecrets → buildDraftPrompts → LLM structured JSON → validate citations → renderDraftMarkdown → Draft
+```
+
+| File | Responsibility |
+|------|----------------|
+| `prompt.ts` | System + user prompts; tone instructions; source catalog with ids |
+| `schema.ts` | Zod `llmDraftOutputSchema`: `{ sections: [{type, title, content, sourceIds}], contributors, suggestedSemver? }` |
+| `generate.ts` | `generateDraft(sources, config, llmClient)` + `CitationValidationError` |
+| `render.ts` | Section order from config; omit empty; `## Contributors` last |
+| `llm/client.ts` | `LLMClient.completeStructured<T>({ system, user, schema, maxTokens })` |
+| `llm/providers.ts` | `OpenAILLMClient`, `AnthropicLLMClient` |
+| `llm/factory.ts` | `createLLMClient(config?)` reads env |
+
+**Citation validation (locked):**
+
+- Every non-empty section (except `credits`) must have ≥1 valid `sourceId` OR inline `(#123)` / `(source:...)`
+- Unknown `sourceId` → `CitationValidationError`
+- On validation failure: retry once with repair prompt; then throw
+
+**LLM defaults (OSS, locked):**
+
+| Env | Default |
+|-----|---------|
+| `POLYSCRIBE_LLM_PROVIDER` | `openai` if `OPENAI_API_KEY`, else `anthropic` if `ANTHROPIC_API_KEY` |
+| `OPENAI_API_KEY` | required for OpenAI |
+| `ANTHROPIC_API_KEY` | required for Anthropic |
+| Model (OpenAI) | `gpt-4.1` |
+| Model (Anthropic) | `claude-sonnet-4-20250514` |
+| `maxTokens` | 4096 output |
+
+**Structured output:** Use provider native JSON mode / tool schema where available; fall back to `zod-to-json-schema.ts` + parse + Zod safeParse.
+
+#### Tone prompt fragments (locked)
+
+| Tone | System instruction fragment |
+|------|----------------------------|
+| `developer-friendly` | Clear, concrete, second-person optional; explain user impact; no hype |
+| `technical` | Precise API names; mention endpoints, types, config keys |
+| `executive` | 2–3 sentence summary; outcomes over implementation |
+| `community` | Warm; emphasize contributors; thank by @handle |
+
+### 0.1.4 Package: `@polyscribe/cli`
+
+**Entry:** `packages/cli/src/index.ts` — Commander program, `run()` for testing.
+
+#### Commands (Phase 1)
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `polyscribe draft` | **Implemented** | Generate AI draft |
+| `polyscribe changelog` | **Implemented** | Draft + merge into CHANGELOG |
+| `polyscribe config --init` | **Implemented** | Write example `.polyscribe.yml` |
+| `polyscribe validate-config` | **Implemented** | Validate config file |
+| `polyscribe doctor` | **Implemented** | Preflight checks |
+| `polyscribe publish` | **Phase 1b** | Create GitHub Release via API |
+| `polyscribe sources` | **Phase 1b** | Print collected sources as JSON (debug) |
+
+#### `polyscribe draft` (spec)
+
+```
+polyscribe draft [options]
+
+Options:
+  --from <ref>     Start ref (default: latest tag or root)
+  --to <ref>       End ref (default: HEAD)
+  --tone <tone>    Override config tone
+  --output <file>  Write markdown to file
+  --json           Print Draft JSON to stdout
+
+Exit codes: 0 ok | 1 config/usage | 2 git | 3 LLM | 4 citation validation
+```
+
+**Stdout (default):** rendered markdown  
+**Stderr:** progress (`Collecting sources...`, `Generating draft...`)
+
+#### `polyscribe changelog` (spec)
+
+```
+polyscribe changelog [options]
+
+Options:
+  --from <ref>       Same as draft
+  --to <ref>
+  --version <ver>    Required unless interactive prompt
+  --write            Write to changelogPath from config
+  --date <YYYY-MM-DD> Default: today UTC
+
+Flow:
+  1. collectSources + generateDraft (or reuse cached draft — post-MVP)
+  2. renderKeepAChangelogBody(sections)
+  3. read changelogPath → insertVersion → write if --write else stdout
+```
+
+#### `polyscribe doctor` (spec)
+
+Checks (print ✓/✗ each):
+
+1. Inside a git repository
+2. `git remote -v` has parseable origin
+3. `GITHUB_TOKEN` set (optional, warn if missing)
+4. LLM key reachable (`createLLMClient` + minimal ping or model list)
+5. Config file valid if present
+6. `changelogPath` exists or parent writable
+
+### 0.1.5 Environment variables
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `OPENAI_API_KEY` | One of LLM keys | OpenAI draft generation |
+| `ANTHROPIC_API_KEY` | One of LLM keys | Anthropic draft generation |
+| `POLYSCRIBE_LLM_PROVIDER` | No | Force `openai` \| `anthropic` |
+| `GITHUB_TOKEN` | No | Enrich with PR metadata |
+| `POLYSCRIBE_CONFIG` | No | Override config file path |
+
+### 0.1.6 Default `.polyscribe.yml` (locked)
+
+```yaml
+changelogPath: CHANGELOG.md
+tone: developer-friendly
+ignoreGlobs:
+  - "**/package-lock.json"
+  - "**/pnpm-lock.yaml"
+  - "**/yarn.lock"
+  - "**/bun.lockb"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/generated/**"
+  - "**/*.min.js"
+monorepoRoots: []
+requireApprover: true        # relevant for SaaS; ignored by CLI publish in Phase 1
+autoPublish: false
+includeUnreleased: false
+publishTargets:
+  - github-release
+  - changelog-pr
+includeCommittersWithoutPr: true
+maxDiffBytesPerFile: 20000
+maxTotalDiffBytes: 400000
+sections:
+  order:
+    - summary
+    - breaking
+    - features
+    - fixes
+    - perf
+    - security
+    - docs
+    - chore
+    - migration
+    - credits
+# llm:                        # optional CLI override
+#   provider: openai
+#   model: gpt-4.1
+```
+
+### 0.1.7 Test matrix (Phase 1)
+
+| Suite | File | Cases | Live deps |
+|-------|------|-------|-----------|
+| Config | `tests/config.test.ts` | defaults, merge, loadConfig | none |
+| Semver | `tests/semver.test.ts` | patch/minor/major/breaking | none |
+| Changelog | `tests/changelog.test.ts` | parse, insert Unreleased | none |
+| Redact | `tests/redact.test.ts` | secret patterns | none |
+| Filter | `tests/filter.test.ts` | ignore globs | none |
+| Prompt | `tests/prompt.test.ts` | tone, source catalog | none |
+| Render | `tests/render.test.ts` | section order, empty omit | none |
+| Git integration | `tests/git.integration.test.ts` | **Phase 1b** | local git fixture repo |
+| Citation | `tests/citation.test.ts` | **Phase 1b** | none |
+
+**CI command (locked):** `pnpm build && pnpm test && pnpm typecheck && pnpm lint`
+
+**Never in CI:** live LLM calls, live GitHub API calls.
+
+### 0.1.8 Implementation status tracker
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Monorepo scaffold | ✅ Done | pnpm + turbo + tsup |
+| `config/` | ✅ Done | Zod schema + load |
+| `git/` refs, log, diff | ✅ Done | |
+| `github/` client, prs | ✅ Done | optional token |
+| `ingest/collect` | ✅ Done | PR-first dedupe |
+| `semver/heuristics` | ✅ Done | |
+| `changelog/` parse + merge | ✅ Done | |
+| `redact/secrets` | ✅ Done | |
+| `draft/` pipeline | ✅ Done | OpenAI + Anthropic |
+| CLI draft/changelog/config/doctor | ✅ Done | |
+| Unit tests (32) | ✅ Done | |
+| `polyscribe publish` | ⬜ Phase 1b | GitHub Releases API |
+| `polyscribe sources` | ⬜ Phase 1b | debug JSON export |
+| Git integration tests | ⬜ Phase 1b | fixture repo |
+| Citation unit tests | ⬜ Phase 1b | |
+| `docs/cli.md` | ⬜ Phase 1b | |
+| Dogfood on LatticeAG repo | ⬜ Phase 1b | |
+| npm publish `@polyscribe/*` | ⬜ Phase 1c | |
+
+### 0.1.9 OSS milestones (active)
+
+| ID | Done when | Status |
+|----|-----------|--------|
+| **O1** Scaffold + build | `pnpm build` green | ✅ |
+| **O2** Ingestion | `collectSources` returns PRs+commits+diffs | ✅ |
+| **O3** Draft | `generateDraft` + CLI `draft` | ✅ |
+| **O4** Changelog | `insertVersion` + CLI `changelog --write` | ✅ |
+| **O5** Tests | ≥30 unit tests, no live LLM | ✅ |
+| **O6** Publish | `polyscribe publish` creates GitHub Release | ⬜ |
+| **O7** Docs + npm | README quickstart + npm publish | ⬜ |
+| **O8** Dogfood | PolyScribe release notes via PolyScribe | ⬜ |
+
+### 0.1.10 Phase 1b recommendations (next build tasks)
+
+1. **`polyscribe publish`** — `POST /repos/{owner}/{repo}/releases` with `tag_name`, `body`, `draft: false`; require existing tag.
+2. **`polyscribe sources --json`** — expose ingestion for debugging without LLM spend.
+3. **Fixture git repo** in `packages/core/tests/fixtures/repo/` for integration tests.
+4. **`CitationValidationError` tests** — bullet without sourceId fails; repair retry mocked.
+5. **Config `llm.model` override** — wire through `createLLMClient`.
+6. **Conventional commit detection** — `feat:` / `fix:` in commit titles augments semver heuristics.
+7. **Rate limit handling** — Octokit retry plugin for GitHub 403/429.
+8. **`polyscribe changelog --dry-run`** — print diff of changelog change without write.
+
+### 0.1.11 Explicitly deferred (Phase 2+)
+
+Do **not** build until OSS v0.1 ships:
+
+- GitHub App + webhooks
+- Dashboard (`@polyscribe/web`)
+- `@polyscribe/server` multi-tenant
+- Postgres, queues, billing, invites
+- Auto-draft on tag push
+- Approver roles / audit log UI
+- SSO, org defaults
 
 ---
 
@@ -933,27 +1389,42 @@ Dogfood rule: **PolyScribe releases are written with PolyScribe** once M3 exists
 
 ---
 
-## 21. MVP Delivery Plan (capability milestones)
+## 21. Delivery Plan
 
-> No calendar estimates — ship by milestone completion criteria.
+### 21.1 OSS Phase 1 (active — see §0.1)
+
+| ID | Milestone | Status |
+|----|-----------|--------|
+| O1 | Scaffold + build | ✅ |
+| O2 | Ingestion (`collectSources`) | ✅ |
+| O3 | Draft generation + CLI `draft` | ✅ |
+| O4 | Changelog merge + CLI `changelog` | ✅ |
+| O5 | Unit tests (32+) | ✅ |
+| O6 | `polyscribe publish` | ⬜ Phase 1b |
+| O7 | npm publish + docs | ⬜ Phase 1c |
+| O8 | Dogfood release | ⬜ Phase 1c |
+
+### 21.2 SaaS Phase 2+ (deferred)
+
+> Do not start until OSS v0.1 is on npm and dogfooded.
 
 ### M1 — App skeleton & identity
 **Done when:** GitHub App installs; webhook signatures verified; installation stored; user can sign into empty dashboard.
 
-### M2 — Ingestion
-**Done when:** Given `from..to`, system returns normalized `SourceItem[]` with PRs, commits, filtered files; CLI can print JSON sources.
+### M2 — Source ingestion (SaaS)
+**Done when:** Same as O2 but via webhook-triggered jobs.
 
-### M3 — Draft generation
-**Done when:** LLM pipeline produces cited markdown + sections + semver; available via API + CLI; basic web preview.
+### M3 — Draft generation (SaaS)
+**Done when:** LLM pipeline produces cited markdown + sections + semver; available via API + dashboard.
 
-### M4 — Changelog
-**Done when:** Keep a Changelog merge works on fixtures; CLI `--write`; SaaS opens changelog PR.
+### M4 — Changelog (SaaS)
+**Done when:** Keep a Changelog merge works; SaaS opens changelog PR.
 
-### M5 — Review & publish
+### M5 — Review & publish (SaaS)
 **Done when:** Approve/discard/publish to GitHub Release; `requireApprover` enforced; audit events recorded.
 
-### M6 — Hardening & docs
-**Done when:** Retries, doctor command, security doc, self-host compose, dogfood release notes published with PolyScribe; invite flow live.
+### M6 — Hardening & docs (SaaS)
+**Done when:** Retries, security doc, self-host compose, invite flow live.
 
 ---
 
@@ -988,7 +1459,8 @@ Reply with preferences only where you disagree; otherwise we treat SPEC defaults
 
 | Decision | Choice |
 |----------|--------|
-| Commercial shape | **Hybrid** (OSS MIT + invite SaaS + self-host) |
+| **Active phase** | **OSS only** (`@polyscribe/core` + `@polyscribe/cli`) |
+| Commercial shape (long-term) | **Hybrid** (OSS MIT + invite SaaS + self-host) |
 | Forge support MVP | GitHub only |
 | Changelog style | Keep a Changelog |
 | Default tone | `developer-friendly` |

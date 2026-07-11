@@ -23,7 +23,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@polyscribe/core": "workspace:*"
+    "@polyscribe/core": "workspace:*",
+    "commander": "^13.0.0",
+    "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",
