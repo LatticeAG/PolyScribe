@@ -1,0 +1,68 @@
+{
+  "name": "@polyscribe/core",
+  "version": "0.1.0",
+  "description": "Core library for PolyScribe — git ingestion, AI drafting, and changelog merging",
+  "type": "module",
+  "license": "MIT",
+  "author": "LatticeAG",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LatticeAG/PolyScribe.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/LatticeAG/PolyScribe#readme",
+  "bugs": {
+    "url": "https://github.com/LatticeAG/PolyScribe/issues"
+  },
+  "keywords": [
+    "polyscribe",
+    "release-notes",
+    "changelog",
+    "github",
+    "semver",
+    "llm",
+    "openai",
+    "anthropic"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@octokit/plugin-retry": "^8.0.0",
+    "@octokit/plugin-throttling": "^10.0.0",
+    "@octokit/rest": "^22.0.0",
+    "execa": "^9.6.0",
+    "minimatch": "^10.0.3",
+    "openai": "^4.77.0",
+    "yaml": "^2.8.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

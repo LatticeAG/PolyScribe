@@ -1,0 +1,64 @@
+{
+  "name": "@polyscribe/cli",
+  "version": "0.1.0",
+  "description": "CLI for PolyScribe — evidence-linked release notes for GitHub",
+  "type": "module",
+  "license": "MIT",
+  "author": "LatticeAG",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LatticeAG/PolyScribe.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/LatticeAG/PolyScribe#readme",
+  "bugs": {
+    "url": "https://github.com/LatticeAG/PolyScribe/issues"
+  },
+  "keywords": [
+    "polyscribe",
+    "cli",
+    "release-notes",
+    "changelog",
+    "github",
+    "semver",
+    "llm"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "polyscribe": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@polyscribe/core": "workspace:*",
+    "commander": "^13.0.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

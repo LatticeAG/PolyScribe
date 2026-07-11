@@ -1,0 +1,43 @@
+# PolyScribe configuration for this repository.
+# See docs/configuration.md for the full reference.
+
+changelogPath: CHANGELOG.md
+tone: developer-friendly
+
+# requireApprover: true
+# autoPublish: false
+# includeUnreleased: false
+
+# publishTargets:
+#   - github-release
+#   - changelog-pr
+
+# ignoreGlobs:
+#   - "**/package-lock.json"
+#   - "**/pnpm-lock.yaml"
+#   - "**/yarn.lock"
+#   - "**/bun.lockb"
+#   - "**/dist/**"
+#   - "**/generated/**"
+
+# monorepoRoots: []
+# includeCommittersWithoutPr: true
+# maxDiffBytesPerFile: 20000
+# maxTotalDiffBytes: 400000
+
+# sections:
+#   order:
+#     - summary
+#     - breaking
+#     - features
+#     - fixes
+#     - perf
+#     - security
+#     - docs
+#     - chore
+#     - migration
+#     - credits
+
+# llm:
+#   provider: openai
+#   model: gpt-4.1
