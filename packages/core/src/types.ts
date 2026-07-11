@@ -129,3 +129,23 @@ export interface GenerateDraftConfig {
   repositoryId?: string;
   range?: ReleaseRange;
 }
+
+export interface PublishReleaseOptions {
+  token: string;
+  owner: string;
+  repo: string;
+  tag: string;
+  title: string;
+  body: string;
+  draft?: boolean;
+  prerelease?: boolean;
+}
+
+export interface PublishReleaseResult {
+  id: number;
+  htmlUrl: string;
+  tagName: string;
+  draft: boolean;
+  prerelease: boolean;
+  created: boolean;
+}

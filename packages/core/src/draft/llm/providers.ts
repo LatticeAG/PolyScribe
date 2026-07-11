@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import type { ZodSchema } from "zod";
 import { zodToJsonSchema } from "../zod-to-json-schema.js";
 import type { LLMClient, LLMCompleteInput } from "./client.js";
 

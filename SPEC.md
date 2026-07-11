@@ -440,13 +440,18 @@ sections:
 | `draft/` pipeline | ✅ Done | OpenAI + Anthropic |
 | CLI draft/changelog/config/doctor | ✅ Done | |
 | Unit tests (32) | ✅ Done | |
+| GitHub Actions CI | ✅ Done | `.github/workflows/ci.yml` |
+| `docs/cli.md` | ✅ Done | full CLI reference |
+| `docs/configuration.md` | ✅ Done | `.polyscribe.yml` reference |
+| `docs/self-hosting.md` | ✅ Done | OSS CLI note; server later |
+| Root `CHANGELOG.md` + `.polyscribe.yml` | ✅ Done | Keep a Changelog + example config |
+| npm publish prep (`@polyscribe/*` v0.1.0) | ✅ Done | metadata, `prepublishOnly`, public access |
 | `polyscribe publish` | ⬜ Phase 1b | GitHub Releases API |
 | `polyscribe sources` | ⬜ Phase 1b | debug JSON export |
 | Git integration tests | ⬜ Phase 1b | fixture repo |
 | Citation unit tests | ⬜ Phase 1b | |
-| `docs/cli.md` | ⬜ Phase 1b | |
 | Dogfood on LatticeAG repo | ⬜ Phase 1b | |
-| npm publish `@polyscribe/*` | ⬜ Phase 1c | |
+| npm publish `@polyscribe/*` to registry | ⬜ Phase 1c | `pnpm publish` after tag |
 
 ### 0.1.9 OSS milestones (active)
 
@@ -458,7 +463,7 @@ sections:
 | **O4** Changelog | `insertVersion` + CLI `changelog --write` | ✅ |
 | **O5** Tests | ≥30 unit tests, no live LLM | ✅ |
 | **O6** Publish | `polyscribe publish` creates GitHub Release | ⬜ |
-| **O7** Docs + npm | README quickstart + npm publish | ⬜ |
+| **O7** Docs + npm | README quickstart + npm publish prep | 🟡 Docs/CI done; registry publish Phase 1c |
 | **O8** Dogfood | PolyScribe release notes via PolyScribe | ⬜ |
 
 ### 0.1.10 Phase 1b recommendations (next build tasks)

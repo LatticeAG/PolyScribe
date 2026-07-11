@@ -1,5 +1,24 @@
-import { Octokit } from "@octokit/rest";
 import type { RemoteRepo, SourceItem } from "../types.js";
+import { createOctokit } from "./client.js";
+
+const LINKED_ISSUE_PATTERN =
+  /\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\s+#(\d+)\b/gi;
+
+export function parseLinkedIssues(
+  body?: string | null,
+): Array<{ number: number; title: string }> {
+  if (!body) return [];
+
+  const issues = new Map<number, { number: number; title: string }>();
+
+  for (const match of body.matchAll(LINKED_ISSUE_PATTERN)) {
+    const number = Number(match[1]);
+    if (!Number.isFinite(number)) continue;
+    issues.set(number, { number, title: `Issue #${number}` });
+  }
+
+  return [...issues.values()];
+}
 
 export function mapPrToSourceItem(
   pr: {
@@ -31,6 +50,7 @@ export function mapPrToSourceItem(
     },
     mergedAt: pr.merged_at ?? undefined,
     labels,
+    linkedIssues: parseLinkedIssues(pr.body),
     url:
       pr.html_url ??
       (remote
@@ -49,7 +69,9 @@ export async function fetchMergedPrsInRange(
     return [];
   }
 
-  const octokit = new Octokit({ auth: token });
+  const octokit = createOctokit(token);
+  if (!octokit) return [];
+
   const items: SourceItem[] = [];
   let page = 1;
 

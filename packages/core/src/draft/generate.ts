@@ -102,7 +102,8 @@ export async function generateDraft(
   }
 
   const tone = config.tone ?? "developer-friendly";
-  const heuristicSemver = suggestSemverFromSources(sources);
+  const semverSuggestion = suggestSemverFromSources(sources);
+  const heuristicSemver = semverSuggestion.level;
   const prompts = buildDraftPrompts(sources, tone, heuristicSemver);
   const sourceIdSet = new Set(sources.map((s) => s.id));
 

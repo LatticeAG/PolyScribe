@@ -22,7 +22,23 @@ describe("suggestSemverFromSources", () => {
       }),
     ];
 
-    expect(suggestSemverFromSources(sources)).toBe("patch");
+    const result = suggestSemverFromSources(sources);
+    expect(result.level).toBe("patch");
+    expect(result.reasons.some((reason) => reason.includes("fix:"))).toBe(true);
+  });
+
+  it("suggests patch for chore and docs conventional commits", () => {
+    const chore = suggestSemverFromSources([
+      makeSource({ id: "commit:1", title: "chore: update dependencies" }),
+    ]);
+    const docs = suggestSemverFromSources([
+      makeSource({ id: "commit:2", title: "docs: clarify setup steps" }),
+    ]);
+
+    expect(chore.level).toBe("patch");
+    expect(chore.reasons.some((reason) => reason.includes("chore:"))).toBe(true);
+    expect(docs.level).toBe("patch");
+    expect(docs.reasons.some((reason) => reason.includes("docs:"))).toBe(true);
   });
 
   it("suggests minor for feature labels", () => {
@@ -33,7 +49,9 @@ describe("suggestSemverFromSources", () => {
       }),
     ];
 
-    expect(suggestSemverFromSources(sources)).toBe("minor");
+    const result = suggestSemverFromSources(sources);
+    expect(result.level).toBe("minor");
+    expect(result.reasons.length).toBeGreaterThan(0);
   });
 
   it("suggests minor for conventional feat commits", () => {
@@ -44,7 +62,9 @@ describe("suggestSemverFromSources", () => {
       }),
     ];
 
-    expect(suggestSemverFromSources(sources)).toBe("minor");
+    const result = suggestSemverFromSources(sources);
+    expect(result.level).toBe("minor");
+    expect(result.reasons.some((reason) => reason.includes("feat"))).toBe(true);
   });
 
   it("suggests major for breaking labels", () => {
@@ -55,7 +75,9 @@ describe("suggestSemverFromSources", () => {
       }),
     ];
 
-    expect(suggestSemverFromSources(sources)).toBe("major");
+    const result = suggestSemverFromSources(sources);
+    expect(result.level).toBe("major");
+    expect(result.reasons.some((reason) => reason.includes("breaking"))).toBe(true);
   });
 
   it("suggests major when BREAKING CHANGE appears in body", () => {
@@ -67,7 +89,23 @@ describe("suggestSemverFromSources", () => {
       }),
     ];
 
-    expect(suggestSemverFromSources(sources)).toBe("major");
+    const result = suggestSemverFromSources(sources);
+    expect(result.level).toBe("major");
+    expect(result.reasons.some((reason) => reason.includes("BREAKING CHANGE"))).toBe(true);
+  });
+
+  it("suggests major for feat! conventional commits", () => {
+    const sources = [
+      makeSource({
+        title: "feat!: remove deprecated client",
+        labels: ["feat"],
+        body: "Adds new client while removing the old one.",
+      }),
+    ];
+
+    const result = suggestSemverFromSources(sources);
+    expect(result.level).toBe("major");
+    expect(result.reasons.some((reason) => reason.includes("breaking commit"))).toBe(true);
   });
 
   it("prioritizes major over minor when both signals exist", () => {
@@ -79,6 +117,7 @@ describe("suggestSemverFromSources", () => {
       }),
     ];
 
-    expect(suggestSemverFromSources(sources)).toBe("major");
+    const result = suggestSemverFromSources(sources);
+    expect(result.level).toBe("major");
   });
 });

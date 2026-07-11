@@ -10,6 +10,14 @@ export {
   parseRemoteUrl,
 } from "../github/client.js";
 export { fetchMergedPrsInRange, mapPrToSourceItem } from "../github/prs.js";
+export {
+  checkTagExists,
+  createGitHubRelease,
+  findReleaseByTag,
+  getReleaseByTag,
+  tagExists,
+  updateGitHubRelease,
+} from "../github/releases.js";
 
 export { applyIgnoreGlobs, shouldIgnorePath } from "../ingest/filter.js";
 export { collectSources } from "../ingest/collect.js";

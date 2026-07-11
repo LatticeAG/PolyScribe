@@ -1,5 +1,10 @@
+import { Octokit } from "@octokit/rest";
+import { retry } from "@octokit/plugin-retry";
+import { throttling } from "@octokit/plugin-throttling";
 import type { RemoteRepo } from "../types.js";
 import { tryGit } from "../git/exec.js";
+
+const OctokitWithPlugins = Octokit.plugin(retry, throttling) as typeof Octokit;
 
 export function parseRemoteUrl(url: string): RemoteRepo | null {
   const sshMatch = url.match(/^git@([^:]+):([^/]+)\/(.+?)(?:\.git)?$/);
@@ -37,7 +42,27 @@ export async function getCommitDate(
   return result.ok ? result.stdout.trim() : null;
 }
 
-export function createOctokit(token?: string) {
+export function createOctokit(token?: string): Octokit | null {
   if (!token) return null;
-  return { auth: token };
+
+  return new OctokitWithPlugins({
+    auth: token,
+    throttle: {
+      onRateLimit: (retryAfter, options, octokit, retryCount) => {
+        octokit.log.warn(
+          `Rate limit hit for ${options.method} ${options.url}; retrying after ${retryAfter}s`,
+        );
+        return retryCount < 2;
+      },
+      onSecondaryRateLimit: (retryAfter, options, octokit, retryCount) => {
+        octokit.log.warn(
+          `Secondary rate limit for ${options.method} ${options.url}; retrying after ${retryAfter}s`,
+        );
+        return retryCount < 2;
+      },
+    },
+    retry: {
+      doNotRetry: [400, 401, 404, 422],
+    },
+  });
 }

@@ -1,1 +1,5 @@
-export { suggestSemverFromSources } from "./heuristics.js";
+export {
+  suggestSemverFromSources,
+  type SemverLevel,
+  type SemverSuggestion,
+} from "./heuristics.js";
