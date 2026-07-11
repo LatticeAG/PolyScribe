@@ -8,6 +8,8 @@ import { registerChangelogCommand } from "./commands/changelog.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerDraftCommand } from "./commands/draft.js";
+import { registerPublishCommand } from "./commands/publish.js";
+import { registerSourcesCommand } from "./commands/sources.js";
 import { registerValidateConfigCommand } from "./commands/validate-config.js";
 
 const packageRoot = dirname(fileURLToPath(import.meta.url));
@@ -25,6 +27,8 @@ export function createProgram(): Command {
 
   registerDraftCommand(program);
   registerChangelogCommand(program);
+  registerSourcesCommand(program);
+  registerPublishCommand(program);
   registerConfigCommand(program);
   registerValidateConfigCommand(program);
   registerDoctorCommand(program);

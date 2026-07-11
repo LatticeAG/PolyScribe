@@ -1,7 +1,15 @@
+import { accessSync, constants, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { dirname, join } from "node:path";
 import type { Command } from "commander";
 import pc from "picocolors";
-import { findConfigPath, hasLLMCredentials, loadConfig } from "@polyscribe/core";
+import {
+  findConfigPath,
+  getLatestTag,
+  hasLLMCredentials,
+  loadConfig,
+  resolveRange,
+} from "@polyscribe/core";
 
 function isGitRepo(cwd: string): boolean {
   try {
@@ -35,11 +43,41 @@ function checkLLM(configProvider?: string): { ok: boolean; message: string } {
   };
 }
 
+function checkChangelogWritable(
+  cwd: string,
+  changelogPath: string,
+): { ok: boolean; message: string } {
+  const absolutePath = join(cwd, changelogPath);
+
+  if (existsSync(absolutePath)) {
+    try {
+      accessSync(absolutePath, constants.W_OK);
+      return { ok: true, message: `${changelogPath} is writable` };
+    } catch {
+      return { ok: false, message: `${changelogPath} exists but is not writable` };
+    }
+  }
+
+  const parent = dirname(absolutePath);
+  try {
+    accessSync(parent, constants.W_OK);
+    return {
+      ok: true,
+      message: `${changelogPath} can be created (parent directory writable)`,
+    };
+  } catch {
+    return {
+      ok: false,
+      message: `Cannot write ${changelogPath} (parent directory not writable)`,
+    };
+  }
+}
+
 export function registerDoctorCommand(program: Command): void {
   program
     .command("doctor")
     .description("Check git repo, optional GITHUB_TOKEN, and LLM credentials")
-    .action(() => {
+    .action(async () => {
       const cwd = process.cwd();
       const { config } = loadConfig(cwd);
       let failed = false;
@@ -53,6 +91,26 @@ export function registerDoctorCommand(program: Command): void {
         }`,
       );
       if (!gitOk) failed = true;
+
+      if (gitOk) {
+        const latestTag = await getLatestTag(cwd);
+        console.log(
+          `${latestTag ? pc.green("✓") : pc.yellow("!")} Latest tag: ${
+            latestTag ?? "none detected"
+          }`,
+        );
+
+        try {
+          const range = await resolveRange(cwd);
+          console.log(
+            `${pc.green("✓")} Suggested range: ${range.fromRef}..${range.toRef}`,
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.log(`${pc.red("✗")} Suggested range: ${message}`);
+          failed = true;
+        }
+      }
 
       const github = checkGitHubToken();
       console.log(
@@ -71,6 +129,12 @@ export function registerDoctorCommand(program: Command): void {
           configPath ?? "using defaults (run polyscribe config init)"
         }`,
       );
+
+      const changelog = checkChangelogWritable(cwd, config.changelogPath);
+      console.log(
+        `${changelog.ok ? pc.green("✓") : pc.red("✗")} Changelog: ${changelog.message}`,
+      );
+      if (!changelog.ok) failed = true;
 
       console.log("");
       if (failed) {
