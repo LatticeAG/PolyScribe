@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "baseUrl": "../..",
+    "paths": {
+      "@polyscribe/plugin-sdk": ["packages/plugin-sdk/src/index.ts"]
+    }
+  },
+  "include": ["src", "../plugin-sdk/src"]
+}

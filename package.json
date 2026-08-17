@@ -16,6 +16,15 @@
     "typescript-eslint": "^8.34.0"
   },
   "packageManager": "pnpm@10.12.1",
+  "pnpm": {
+    "packageExtensions": {
+      "@latticeag/polymesh-client@0.2.0": {
+        "dependencies": {
+          "@polymesh/broker": "npm:@latticeag/polymesh-broker@0.2.0"
+        }
+      }
+    }
+  },
   "engines": {
     "node": ">=22"
   }

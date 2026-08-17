@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LatticeAG/PolyScribe/blob/main/schemas/pscf/v1.json",
+  "title": "PolyScribe Changelog Format v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "specVersion",
+    "documentId",
+    "revisionId",
+    "createdAt",
+    "updatedAt",
+    "release",
+    "snapshot",
+    "changeSet",
+    "editions"
+  ],
+  "properties": {
+    "$schema": { "const": "https://github.com/LatticeAG/PolyScribe/blob/main/schemas/pscf/v1.json" },
+    "specVersion": { "const": "polyscribe/changelog@1" },
+    "documentId": { "type": "string", "minLength": 1 },
+    "revisionId": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "release": { "$ref": "#/$defs/release" },
+    "snapshot": { "$ref": "#/$defs/snapshot" },
+    "changeSet": { "$ref": "#/$defs/changeSet" },
+    "editions": { "type": "array", "items": { "$ref": "#/$defs/edition" } },
+    "quality": { "type": "object" },
+    "publicationLedgerRefs": { "type": "array", "items": { "type": "string" } },
+    "auditRefs": { "type": "array", "items": { "type": "string" } },
+    "integrity": { "type": "object" },
+    "extensions": {
+      "type": "object",
+      "description": "Plugin-owned fields keyed by reverse-DNS plugin ID."
+    }
+  },
+  "$defs": {
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repositoryId", "status"],
+      "properties": {
+        "repositoryId": { "type": "string", "minLength": 1 },
+        "componentId": { "type": "string" },
+        "version": { "type": "string" },
+        "tag": { "type": "string" },
+        "range": { "type": "object" },
+        "status": { "type": "string", "minLength": 1 },
+        "releasedAt": { "type": "string", "format": "date-time" },
+        "lineage": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "required": ["snapshotId"],
+      "properties": {
+        "snapshotId": { "type": "string", "minLength": 1 },
+        "evidence": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "changeSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshotId", "changes"],
+      "properties": {
+        "snapshotId": { "type": "string", "minLength": 1 },
+        "completeness": { "enum": ["complete", "partial", "unknown", "not-applicable"] },
+        "changes": { "type": "array", "items": { "$ref": "#/$defs/change" } }
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["changeId", "categories", "impact", "inclusion", "visibility", "deliveryEvidence", "claims"],
+      "properties": {
+        "changeId": { "type": "string", "minLength": 1 },
+        "componentScope": { "type": "array", "items": { "type": "string" } },
+        "categories": { "type": "array", "items": { "enum": ["added", "changed", "fixed", "deprecated", "removed", "security", "performance", "documentation", "operations", "maintenance"] } },
+        "impact": { "enum": ["none", "low", "medium", "high", "breaking", "unknown"] },
+        "inclusion": { "enum": ["must-announce", "announce", "developer-note", "internal-context", "exclude", "needs-review"] },
+        "visibility": { "enum": ["public", "workspace", "restricted", "embargoed"] },
+        "deliveryEvidence": { "type": "array", "items": { "type": "string" } },
+        "claims": { "type": "array", "items": { "$ref": "#/$defs/claim" } },
+        "migration": { "type": "object" }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claimId", "kind", "statement", "certainty", "citations"],
+      "properties": {
+        "claimId": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["what", "why", "impact", "availability", "action", "migration", "deprecation", "security-note", "limitation", "metric"] },
+        "statement": { "type": "string", "minLength": 1 },
+        "certainty": { "enum": ["supported", "human-attested", "unknown", "needs-review"] },
+        "citations": { "type": "array", "items": { "type": "object" } },
+        "visibility": { "enum": ["public", "workspace", "restricted", "embargoed"] },
+        "authoringMode": { "enum": ["derived", "editor-authored", "imported-legacy"] }
+      }
+    },
+    "edition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["editionId", "audience", "baseChangeSetRevision", "revision", "status", "blocks"],
+      "properties": {
+        "editionId": { "type": "string", "minLength": 1 },
+        "audience": { "type": "string", "minLength": 1 },
+        "baseChangeSetRevision": { "type": "string", "minLength": 1 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string", "minLength": 1 },
+        "visibility": { "enum": ["public", "workspace", "restricted", "embargoed"] },
+        "blocks": { "type": "array", "items": { "type": "object" } }
+      }
+    }
+  }
+}

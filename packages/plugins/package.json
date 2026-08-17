@@ -1,0 +1,49 @@
+{
+  "name": "@polyscribe/plugins",
+  "version": "0.1.0",
+  "description": "First-party PolyScribe connector adapters",
+  "type": "module",
+  "license": "MIT",
+  "author": "LatticeAG",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./github": {
+      "types": "./dist/github.d.ts",
+      "import": "./dist/github.js"
+    },
+    "./jira": {
+      "types": "./dist/jira.d.ts",
+      "import": "./dist/jira.js"
+    },
+    "./linear": {
+      "types": "./dist/linear.d.ts",
+      "import": "./dist/linear.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@polyscribe/plugin-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

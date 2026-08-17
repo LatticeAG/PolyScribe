@@ -1,0 +1,43 @@
+{
+  "name": "@polyscribe/editor",
+  "version": "0.1.0",
+  "description": "Framework-free review editor scaffold for PolyScribe release documents",
+  "type": "module",
+  "license": "MIT",
+  "author": "LatticeAG",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LatticeAG/PolyScribe.git",
+    "directory": "packages/editor"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@polyscribe/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
