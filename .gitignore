@@ -2,3 +2,12 @@ node_modules
 dist
 .turbo
 .env
+
+# LatticeAG internal docs - never public
+*SPEC*.md
+*BUILD-SPEC*.md
+*HANDOFF*.md
+*ROADMAP*.md
+*REVIEW*.md
+*WHAT-NEXT*.md
+AGENTS.md
