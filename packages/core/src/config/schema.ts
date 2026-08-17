@@ -48,6 +48,7 @@ const llmSchema = z
   .object({
     provider: z.enum(["openai", "anthropic", "openai-compatible"]),
     model: z.string().min(1),
+    baseUrl: z.string().url().optional(),
   })
   .optional();
 

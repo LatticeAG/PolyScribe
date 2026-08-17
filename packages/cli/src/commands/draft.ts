@@ -75,6 +75,7 @@ export function registerDraftCommand(program: Command): void {
         const llm = createLLMClient({
           provider: config.llm?.provider,
           model: config.llm?.model,
+          baseUrl: config.llm?.baseUrl,
         });
 
         console.error(
