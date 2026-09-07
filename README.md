@@ -32,7 +32,9 @@
   <a href="#how-it-works">How It Works</a> ·
   <a href="#features">Features</a> ·
   <a href="#commands">Commands</a> ·
-  <a href="#packages">Packages</a>
+  <a href="#configuration">Configuration</a> ·
+  <a href="#packages">Packages</a> ·
+  <a href="#file-tree">File Tree</a>
 </p>
 
 ---
@@ -155,14 +157,79 @@ flowchart LR
 | `polyscribe sources` | Debug raw commit and PR sources |
 | `polyscribe publish` | Create or update a GitHub Release |
 
+## Configuration
+
+`polyscribe config init` writes a `.polyscribe.yml` in the current directory; `polyscribe validate-config` checks it against the schema (full reference in [docs/configuration.md](./docs/configuration.md)). Verified keys from this repo's own config:
+
+```yaml
+changelogPath: CHANGELOG.md
+tone: developer-friendly
+
+# requireApprover: true
+# autoPublish: false
+# includeUnreleased: false
+
+# publishTargets:
+#   - github-release
+#   - changelog-pr
+
+# ignoreGlobs:
+#   - "**/pnpm-lock.yaml"
+#   - "**/dist/**"
+
+# monorepoRoots: []
+# includeCommittersWithoutPr: true
+# maxDiffBytesPerFile: 20000
+# maxTotalDiffBytes: 400000
+
+# sections:
+#   order: [summary, breaking, features, fixes, perf, security, docs, chore, migration, credits]
+
+# llm:
+#   provider: openai
+#   model: gpt-4.1
+```
+
+```bash
+polyscribe config init
+polyscribe validate-config
+polyscribe validate-config path/to/.polyscribe.yml
+polyscribe doctor   # git repo, GITHUB_TOKEN, and LLM credentials
+```
+
+Credentials are env-only: `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` for drafting, optional `GITHUB_TOKEN` for PR enrichment (without it, drafts fall back to commit messages only).
+
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| [`@polyscribe/core`](./packages/core) | Core library -- parsing, drafting, and release logic |
-| [`@polyscribe/cli`](./packages/cli) | Command-line interface (`polyscribe`) |
+| Package | Version | Description |
+|---------|---------|-------------|
+| [`@polyscribe/core`](./packages/core) | 0.1.0 | Core library -- parsing, drafting, and release logic |
+| [`@polyscribe/cli`](./packages/cli) | 0.1.0 | Command-line interface (`polyscribe`) |
+| [`@polyscribe/editor`](./packages/editor) | 0.1.0 | Release-notes editing UI |
+| [`@polyscribe/plugin-sdk`](./packages/plugin-sdk) | 0.1.0 | Plugin authoring SDK |
+| [`@polyscribe/plugins`](./packages/plugins) | 0.1.0 | Bundled plugins |
+| [`@polyscribe/schema`](./packages/schema) | 0.1.0 | Shared schemas |
 
 Published packages include a `prepublishOnly` script that runs `pnpm build` before npm publish.
+
+## File Tree
+
+```
+packages/
+  cli/            polyscribe binary (draft, changelog, sources, publish, config, doctor)
+  core/           ingest, draft, changelog, github, semver, redact, v3 evidence mesh
+  schema/         shared schemas
+  editor/         release-notes editing UI
+  plugin-sdk/     plugin authoring SDK
+  plugins/        bundled plugins
+docs/
+  cli.md            all commands, options, and exit codes
+  configuration.md  .polyscribe.yml schema reference
+  self-hosting.md   OSS CLI setup
+schemas/
+SPEC.md / V3-SPEC.md   product and implementation specifications
+.polyscribe.yml   this repo's own PolyScribe config
+```
 
 ## Documentation
 
@@ -184,6 +251,8 @@ pnpm typecheck
 ```
 
 CI runs the same checks on push and pull requests to `main` and `cursor/*`.
+
+Test suite (verified, `turbo run test --force`): **106 passed, 0 failed across 27 test files and 12 tasks** — core (69), cli (10), editor (7), plugin-sdk (10), plugins (5), schema (5).
 
 ## Known Issues
 
