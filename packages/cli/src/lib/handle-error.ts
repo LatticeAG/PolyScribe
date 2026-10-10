@@ -51,12 +51,15 @@ export function handleCommandError(error: unknown): never {
     process.exit(EXIT_GIT);
   }
 
+  const lowered = message.toLowerCase();
   if (
     error instanceof Error &&
-    (message.includes("API key") ||
-      message.includes("LLM") ||
-      message.includes("OpenAI") ||
-      message.includes("Anthropic"))
+    (lowered.includes("api key") ||
+      lowered.includes("api_key") ||
+      lowered.includes("apikey") ||
+      lowered.includes("llm") ||
+      lowered.includes("openai") ||
+      lowered.includes("anthropic"))
   ) {
     console.error(pc.red(`LLM error: ${message}`));
     process.exit(EXIT_LLM);

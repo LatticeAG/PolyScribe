@@ -23,7 +23,11 @@ export function createProgram(): Command {
   program
     .name("polyscribe")
     .description("PolyScribe — evidence-linked release notes for GitHub")
-    .version(version);
+    .version(version)
+    // Program options (like --version) must precede the subcommand so flags
+    // such as `changelog --version 0.2.0` reach the subcommand instead of
+    // triggering the program-level version print.
+    .enablePositionalOptions();
 
   registerDraftCommand(program);
   registerChangelogCommand(program);
