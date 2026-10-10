@@ -15,7 +15,7 @@ export interface DraftCommandOptions {
   output?: string;
   json?: boolean;
   sourcesOnly?: boolean;
-  noLlm?: boolean;
+  llm?: boolean;
 }
 
 export function registerDraftCommand(program: Command): void {
@@ -40,7 +40,8 @@ export function registerDraftCommand(program: Command): void {
 
       try {
         const { config } = loadConfig(cwd);
-        const skipLlm = options.sourcesOnly || options.noLlm;
+        // Commander maps --no-llm to options.llm === false.
+        const skipLlm = options.sourcesOnly || options.llm === false;
 
         console.error(pc.dim("Collecting sources..."));
         const { range, sources } = await gatherSources(cwd, {
