@@ -50,3 +50,23 @@ it("previews a version and changes without credentials", () => {
     rmSync(cwd, { recursive: true, force: true });
   }
 });
+
+it("explains missing history in a shallow clone", () => {
+  const cwd = mkdtempSync(resolve(process.cwd(), ".shallow-test-"));
+  try {
+    const git = (...args: string[]) => execFileSync("git", args, { cwd, stdio: "ignore" });
+    git("init");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "Test");
+    writeFileSync(resolve(cwd, "file.txt"), "one");
+    git("add", ".");
+    git("commit", "-m", "initial");
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" });
+    writeFileSync(resolve(cwd, ".git/shallow"), head);
+    const result = spawnSync(process.execPath, [resolve(process.cwd(), "dist/index.js"), "draft", "--from", "HEAD~10", "--to", "HEAD"], { cwd, encoding: "utf8" });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("git fetch --unshallow");
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});

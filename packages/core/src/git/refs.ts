@@ -2,8 +2,16 @@ import type { ReleaseRange, ResolvedRange } from "../types.js";
 import { git, tryGit } from "./exec.js";
 
 export async function resolveRef(cwd: string, ref: string): Promise<string> {
-  const result = await git(cwd, ["rev-parse", ref]);
-  return result.stdout.trim();
+  try {
+    const result = await git(cwd, ["rev-parse", ref]);
+    return result.stdout.trim();
+  } catch (error) {
+    const shallow = await tryGit(cwd, ["rev-parse", "--is-shallow-repository"]);
+    if (shallow.ok && shallow.stdout.trim() === "true") {
+      throw new Error(`git could not resolve ${ref} in a shallow clone; run git fetch --unshallow and retry.`);
+    }
+    throw error;
+  }
 }
 
 export async function getLatestTag(cwd: string): Promise<string | null> {
