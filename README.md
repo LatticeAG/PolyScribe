@@ -263,3 +263,7 @@ Test suite (verified, `turbo run test --force`): **106 passed, 0 failed across 2
 ## License
 
 MIT -- see [LICENSE](./LICENSE). Copyright &copy; 2026 LatticeAG.
+
+### Dependency build scripts
+
+The pnpm build-script allowlist permits `better-sqlite3` to install its native SQLite addon and `esbuild` to install its platform-specific binary. Both are needed by the workspace; other dependency build scripts remain unapproved.
