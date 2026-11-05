@@ -21,6 +21,7 @@ export function createProgram(): Command {
   const program = new Command();
 
   program
+    .enablePositionalOptions()
     .name("polyscribe")
     .description("PolyScribe — evidence-linked release notes for GitHub")
     .version(version);
