@@ -1,51 +1,19 @@
-#!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { Command } from "commander";
-import pc from "picocolors";
-import { registerChangelogCommand } from "./commands/changelog.js";
-import { registerConfigCommand } from "./commands/config.js";
-import { registerDoctorCommand } from "./commands/doctor.js";
-import { registerDraftCommand } from "./commands/draft.js";
-import { registerPublishCommand } from "./commands/publish.js";
-import { registerSourcesCommand } from "./commands/sources.js";
-import { registerValidateConfigCommand } from "./commands/validate-config.js";
 
-const packageRoot = dirname(fileURLToPath(import.meta.url));
-const { version } = JSON.parse(
-  readFileSync(join(packageRoot, "../package.json"), "utf8"),
-) as { version: string };
+// Node emits this warning when a dependency loads node:sqlite. Keep all other
+// warnings visible, including other ExperimentalWarnings.
+const emitWarning = process.emitWarning;
+process.emitWarning = function (warning: string | Error, ...args: unknown[]): void {
+  const type = typeof args[0] === "string"
+    ? args[0]
+    : (args[0] as { type?: string } | undefined)?.type;
+  if (
+    typeof warning === "string" &&
+    warning === "SQLite is an experimental feature and might change at any time" &&
+    type === "ExperimentalWarning"
+  ) return;
+  Reflect.apply(emitWarning, process, [warning, ...args]);
+} as typeof process.emitWarning;
 
-export function createProgram(): Command {
-  const program = new Command();
-
-  program
-    .name("polyscribe")
-    .description("PolyScribe — evidence-linked release notes for GitHub")
-    .version(version);
-
-  registerDraftCommand(program);
-  registerChangelogCommand(program);
-  registerSourcesCommand(program);
-  registerPublishCommand(program);
-  registerConfigCommand(program);
-  registerValidateConfigCommand(program);
-  registerDoctorCommand(program);
-
-  return program;
-}
-
-export async function run(argv: string[] = process.argv): Promise<void> {
-  const program = createProgram();
-
-  try {
-    await program.parseAsync(argv);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(pc.red(`Error: ${message}`));
-    process.exit(1);
-  }
-}
-
-void run();
+const program = await import("./program.js");
+export const createProgram = program.createProgram;
+export const run = program.run;

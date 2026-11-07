@@ -54,6 +54,7 @@ export function handleCommandError(error: unknown): never {
   if (
     error instanceof Error &&
     (message.includes("API key") ||
+      message.includes("API_KEY") ||
       message.includes("LLM") ||
       message.includes("OpenAI") ||
       message.includes("Anthropic"))

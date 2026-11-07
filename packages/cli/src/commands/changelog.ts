@@ -86,31 +86,43 @@ export function registerChangelogCommand(program: Command): void {
             process.exit(EXIT_CONFIG);
           }
 
-          const llm = createLLMClient({
-            provider: config.llm?.provider,
-            model: config.llm?.model,
-          });
-
-          console.error(
-            pc.dim(
-              `Generating changelog body with ${llm.provider}/${llm.model}...`,
-            ),
-          );
-
-          const draft = await generateDraft(
-            gathered.sources,
-            {
-              tone: config.tone,
-              repositoryId: "local",
-              range: { fromRef: range.fromRef, toRef: range.toRef },
-            },
-            llm,
-          );
-
-          body = renderKeepAChangelogBody(
-            draft.sections,
-            config.sections?.order,
-          );
+          if (options.dryRun) {
+            const changes = gathered.sources
+              .filter((source) => source.type === "commit" || source.type === "pr")
+              .map((source) => `- ${source.title.replace(/[\r\n]+/g, " ")} (${source.sha?.slice(0, 7) ?? source.id})`);
+            body = [
+              "LLM-authored prose skipped in dry run.",
+              "",
+              "### Changes",
+              ...(changes.length ? changes : ["- No commits or pull requests found."]),
+            ].join("\n");
+          } else {
+            const llm = createLLMClient({
+              provider: config.llm?.provider,
+              model: config.llm?.model,
+            });
+  
+            console.error(
+              pc.dim(
+                `Generating changelog body with ${llm.provider}/${llm.model}...`,
+              ),
+            );
+  
+            const draft = await generateDraft(
+              gathered.sources,
+              {
+                tone: config.tone,
+                repositoryId: "local",
+                range: { fromRef: range.fromRef, toRef: range.toRef },
+              },
+              llm,
+            );
+  
+            body = renderKeepAChangelogBody(
+              draft.sections,
+              config.sections?.order,
+            );
+          }
         }
 
         const changelogPath = resolve(cwd, config.changelogPath);
