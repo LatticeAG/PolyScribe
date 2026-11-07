@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
 
 it("exits non-zero with a clear message when draft credentials are missing", () => {
@@ -61,11 +62,32 @@ it("explains missing history in a shallow clone", () => {
     writeFileSync(resolve(cwd, "file.txt"), "one");
     git("add", ".");
     git("commit", "-m", "initial");
-    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" });
-    writeFileSync(resolve(cwd, ".git/shallow"), head);
-    const result = spawnSync(process.execPath, [resolve(process.cwd(), "dist/index.js"), "draft", "--from", "HEAD~10", "--to", "HEAD"], { cwd, encoding: "utf8" });
-    expect(result.status).not.toBe(0);
+    const clone = resolve(cwd, "clone");
+    execFileSync("git", ["clone", "--depth", "1", pathToFileURL(cwd).href, clone], { stdio: "ignore" });
+    const result = spawnSync(process.execPath, [resolve(process.cwd(), "dist/index.js"), "draft", "--from", "HEAD~1", "--to", "HEAD"], { cwd: clone, encoding: "utf8" });
+    expect(result.status).toBe(2);
     expect(result.stderr).toContain("git fetch --unshallow");
+    expect(result.stderr).not.toContain("fatal:");
+    expect(result.stderr).not.toContain("ExperimentalWarning");
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+
+it("keeps other warnings visible while suppressing only SQLite's warning", () => {
+  const cwd = mkdtempSync(resolve(process.cwd(), ".warning-test-"));
+  try {
+    const preload = resolve(cwd, "warnings.cjs");
+    writeFileSync(preload, `setImmediate(() => {
+      process.emitWarning("A different experimental feature", "ExperimentalWarning");
+      process.emitWarning("SQLite is an experimental feature and might change at any time", "UserWarning");
+    });`);
+    const result = spawnSync(process.execPath, ["--require", preload, resolve(process.cwd(), "dist/index.js"), "draft", "--sources-only"], { cwd, encoding: "utf8" });
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain("ExperimentalWarning: A different experimental feature");
+    expect(result.stderr).toContain("UserWarning: SQLite is an experimental feature");
+    expect(result.stderr).not.toContain("ExperimentalWarning: SQLite is an experimental feature");
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
